@@ -1,0 +1,98 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0" DefaultTargets="Deploy">
+
+  <!--Criando variáveis globais-->
+  <ItemGroup>
+    <!--Você consegue gerar o nome que quiser, o problema é que não será validado pelo Schema msbuild 2003.-->
+    <BuildArtifacts Include=".\buildartifacts\"></BuildArtifacts>
+    <SolutionFile Include=".\TeamCityFirstSolution.sln"></SolutionFile>
+  </ItemGroup>
+
+  <!--Criei outro ItemGroup só para declarar as variáveis em relação a Testes, que no caso será usado o NUnit.-->
+  <ItemGroup>
+    <Nunit Include=".\ThirdyParty\NUnit-2.6.3\bin\nunit-console.exe"></Nunit>
+    <TestAssembly Include=".\buildartifacts\TeamCityWeb.Tests.dll"></TestAssembly>
+    <TestResults Include=".\buildartifacts\TestResults.xml"></TestResults>
+  </ItemGroup>
+
+  <!--
+    Variáveis responsáveis pelo Deploy, basicamente precisaremos dos seguintes itens:
+    msdeploy.exe
+    O arquivo do package resultante da execução do msdeploy.exe
+    Localização do Site, que é construido à partir do Build do MSBuild.
+  -->
+  <ItemGroup>
+    <MsDeploy Include=".\ThirdyParty\Microsoft Web Deploy V3\msdeploy.exe"></MsDeploy>
+    <WebSite Include=".\buildartifacts\_PublishedWebsites\TeamCityWeb"></WebSite>
+    <PackageFile Include=".\buildartifacts\package\TeamCityWeb.zip"></PackageFile>
+  </ItemGroup>
+  
+  <!--É possivel trocar de Debug para Release com uma PropertyGroup-->
+  <PropertyGroup>
+    <!--Caso não for passado nenhum parâmetro chamado Configuration, ele será atribuido para Debug automáticamente.
+    Para acessar as PropertyGroup é necessário o uso de $ ao invés de @-->
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+  </PropertyGroup>
+
+  <!--Targets são blocos de códigos para serem executados-->
+  <Target Name="Clean">
+    <RemoveDir Directories="@(BuildArtifacts)"></RemoveDir>
+  </Target>
+
+  <Target Name="Init" DependsOnTargets="Clean">
+    <MakeDir Directories="@(BuildArtifacts)"></MakeDir>
+  </Target>
+
+  <Target Name="Compile" DependsOnTargets="Init">
+    <!--
+      BuildArtifacts faz parte das nossas variáveis globais. E essas variáveis possuem propriedades. Uma dessas propriedades é o FullPath
+      Para acessar as propriedades ao invés de usar @ é usado %
+      %(BuildArtifacts.FullPath) => C:\Slipmp\TeamCityFirstSolution\buildartifacts\
+      
+      O MSBuild aceita algumas propriedades como parâmetro, exemplos:
+      OutDir=Diretório de saída para o build 
+      Configuration=Modo de compilação (Debug, Release, etc)
+    -->
+    <MSBuild Projects="@(SolutionFile)" Targets="Rebuild" 
+             Properties="OutDir=%(BuildArtifacts.FullPath);Configuration=$(Configuration)"></MSBuild>
+
+  </Target>
+
+  <!--Executando os testes usando NUnit-->
+  <Target Name="Test" DependsOnTargets="Compile">
+    <Exec Command="@(NUnit) @(TestAssembly) /xml=@(TestResults)"></Exec>
+  </Target>
+
+  <!--Esse target será responsável pela criação do package que por sua vez será usado para o deploy no IIS-->
+  <Target Name="Package" DependsOnTargets="Clean;Init;Compile;Test;">
+    <PropertyGroup>
+      <!--RootDir contém apenas a letra do disco rigido. 
+      Directory possui o endereço completo com exceção da letra do disco rigido.
+      É necessário passar dessa maneira, pois é assim que o MsDeploy funciona.-->
+      <PackageDir>%(PackageFile.RootDir)%(PackageFile.Directory)</PackageDir>
+      <Source>%(Website.FullPath)</Source>
+      <Destination>%(PackageFile.FullPath)</Destination>
+    </PropertyGroup>
+    <MakeDir Directories="$(PackageDir)"></MakeDir>
+    <Exec Command='"@(MsDeploy)" -verb:sync -source:iisApp="$(Source)" -dest:package="$(Destination)"'></Exec>
+  </Target>
+
+  <!--Agora que temos o arquivo TeamCityWeb.zip que é o pacote completo da nossa aplicação, é necessário instala-lo de forma automática.
+  E para isso precisaremos que o servidor que receberá nossa aplicação possua instalado o Microsoft Web Deploy.
+  Basta fazer download desse link: http://www.microsoft.com/web/downloads/platform.aspx
+  Procure por "Web Deployment Tool" ou em português "Ferramenta de implantação da Web"
+  Após a instalação no servidor é necessário verificar se o Serviço do Windows responsável pelo Web Deploy está rodando.
+  Nome em português: Serviço do Agente de Implantação da Web
+  Nome em inglês: Web Deployment Agent Service
+  
+  Também será necessário criar um novo site no IIS para receber nossa aplicação. No nosso caso o site se chamará TeamCityWeb
+  e estará apontando para um diretório fisico vazio dentro de inetpub. Quando executarmos o build os arquivos serão copiados para lá.
+  -->
+
+  <Target Name='Deploy' DependsOnTargets='Clean;Init;Compile;Test;Package'>
+    <PropertyGroup>
+      <Source>%(PackageFile.FullPath)</Source>
+    </PropertyGroup>
+    <Exec Command='"@(MsDeploy)" -verb:sync -source:package="$(Source)" -dest:iisApp=TeamCityWeb'></Exec>
+  </Target>
+</Project>

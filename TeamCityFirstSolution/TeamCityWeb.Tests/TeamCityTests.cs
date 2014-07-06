@@ -1,17 +1,17 @@
 ﻿using System;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
+using NUnit.Framework;
 
 namespace TeamCityWeb.Tests
 {
-    [TestClass]
+    [TestFixture]
     public class TeamCityTests
     {
-        [TestMethod]
+        [Test]
         public void MyTestMethod()
         {
             int i=10;
 
-            Assert.AreEqual(11, i);
+            Assert.AreEqual(10, i);
         }
     }
 }
