@@ -7,9 +7,11 @@ namespace TeamCityWeb.Tests
     public class TeamCityTests
     {
         [TestMethod]
-        public void TestMethod1()
+        public void MyTestMethod()
         {
+            int i=10;
 
+            Assert.AreEqual(11, i);
         }
     }
 }
