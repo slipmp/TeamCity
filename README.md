@@ -11,3 +11,4 @@ Projeto criado com duas finalidades:
 
 
 A explicação do projeto está localizada no meu blog no seguinte link:
+http://www.slipmp.com.br/blog/index.php/criando-build-scripts-em-net-usando-msbuild/
