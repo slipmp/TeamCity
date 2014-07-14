@@ -10,6 +10,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{50CC092E-FF29-4DB8-8427-66AF77B409B6}"
 	ProjectSection(SolutionItems) = preProject
 		TeamCityFirstSolution.build = TeamCityFirstSolution.build
+		WindowsService.build = WindowsService.build
 	EndProjectSection
 EndProject
 Global

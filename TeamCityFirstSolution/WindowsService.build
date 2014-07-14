@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!--Declaração do Projeto MSBuild-->
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003" DefaultTargets="StopService;Deploy;StartService;">
+
+  <!--As seguintes variáveis devem ser criadas em um ItemGroup:
+    ServiceName
+    DestinationHost
+    DestionationFolder
+    CopyFiles-->
+  
+  <!--Importação de algumas extenções do MSBuild--> 
+  <Import Project="$(MSBuildExtensionsPath)\ExtensionPack\MSBuild.ExtensionPack.tasks"/>
+  <Import Project="$(MSBuildExtensionsPath)\MSBuildCommunityTasks\MSBuild.Community.Tasks.Targets"/>
+ 
+  <!--Target responsável por parar o Serviço - Essa é a sintaxe para encerrar um Serviço Windows-->
+  <Target Name="StopService">
+
+	<MSBuild.ExtensionPack.Computer.WindowsService ServiceName="$(ServiceName)" MachineName="$(DestinationHost)" TaskAction="Stop"/>
+  </Target>
+
+  <!--Target responsável por copiar os arquivos para o Windows Service. 
+  É recomendado que faça o Clean do diretório primeiro, conforme o Primeiro BuildScript apresentado -->
+  <Target Name="Deploy">	 
+     
+    <CreateItem Include="..\$(ArtifactPath)\**" >
+      <Output TaskParameter="Include" ItemName="CopyFiles"/>
+    </CreateItem>
+      
+    <!--Sintaxe para copiar os arquivos-->
+    <Copy
+      SourceFiles="@(CopyFiles)"
+      DestinationFiles="@(CopyFiles->'\\$(DestinationHost)\$(DestinationFolder)\%(RecursiveDir)%(Filename)%(Extension)')" />
+      
+  </Target>
+  
+  <!--Sintaxe para Iniciar o serviço windows (Windows Service)-->
+  <Target Name="StartService">
+        <ServiceController ServiceName="$(ServiceName)" MachineName="$(DestinationHost)" Action="Start" />
+  </Target>  
+</Project>
